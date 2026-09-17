@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Personal Blog</title>
+<style>
+:root{
+  --paper:#f7f3eb;
+  --ink:#171411;
+}
+*{box-sizing:border-box}
+html,body{
+  background:var(--paper);
+  min-height:100%;
+  color:var(--ink);
+  margin:0;
+  font-family:Georgia,Iowan Old Style,Times New Roman,serif;
+}
+body{
+  border-top:1px solid #1714111a;
+}
+a{
+  color:inherit;
+  text-decoration:none;
+}
+.page-shell{
+  max-width:1100px;
+  margin:0 auto;
+  padding:32px 24px 80px;
+}
+/* 头部导航 */
+.site-header{
+  display:grid;
+  gap:12px;
+  margin-bottom:40px;
+}
+.site-header__top{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:12px;
+}
+.site-header__eyebrow,.language-switch{
+  letter-spacing:.14em;
+  text-transform:uppercase;
+  color:#171411ad;
+  font-family:Helvetica Neue,Helvetica,Arial,sans-serif;
+  font-size:.78rem;
+}
+.site-header__nav{
+  display:flex;
+  flex-wrap:wrap;
+  gap:.25rem;
+  color:#171411d1;
+  font-size:1rem;
+}
+.editorial-rule{
+  height:1px;
+  background:#1714111f;
+}
+/* Hero区域 */
+.home-hero{
+  max-width:720px;
+  margin-bottom:34px;
+}
+.home-hero h1{
+  margin:0;
+  font-size:clamp(3.2rem,7vw,5.5rem);
+  font-weight:500;
+  line-height:.95;
+}
+.home-hero p{
+  color:#171411b3;
+  margin:14px 0 0;
+  font-size:1rem;
+  line-height:1.75;
+}
+/* 首页网格：置顶文章 + 侧边栏 */
+.home-grid{
+  display:grid;
+  grid-template-columns:minmax(0,1.4fr) minmax(260px,.8fr);
+  align-items:start;
+  gap:22px;
+}
+.home-grid__side{
+  display:grid;
+  gap:16px;
+}
+.kicker{
+  letter-spacing:.14em;
+  text-transform:uppercase;
+  color:#1714119e;
+  margin:0 0 10px;
+  font-family:Helvetica Neue,Helvetica,Arial,sans-serif;
+  font-size:.72rem;
+}
+.cover-story,.side-module{
+  background:#ffffff52;
+  border:1px solid #1714111f;
+  border-radius:8px;
+}
+.cover-story{
+  padding:24px;
+}
+.cover-story h2{
+  margin:0;
+  font-size:clamp(2rem,4vw,3.2rem);
+  font-weight:500;
+  line-height:.98;
+}
+.cover-story .summary{
+  color:#171411b3;
+  margin:12px 0 0;
+  line-height:1.7;
+}
+.cover-story .meta{
+  display:flex;
+  flex-wrap:wrap;
+  gap:16px;
+  margin-top:18px;
+  padding-top:12px;
+  border-top:1px solid #1714111f;
+  letter-spacing:.14em;
+  text-transform:uppercase;
+  color:#171411ad;
+  font-family:Helvetica Neue,Helvetica,Arial,sans-serif;
+  font-size:.78rem;
+}
+.text-link{
+  display:inline-block;
+  margin-top:18px;
+}
+.side-module{
+  padding:18px;
+}
+.side-module__list{
+  list-style:none;
+  margin:0;
+  padding:0;
+  display:grid;
+  gap:12px;
+}
+.side-module__list strong{
+  font-weight:500;
+  display:block;
+}
+.side-module__list p{
+  color:#171411b3;
+  margin:12px 0 0;
+  line-height:1.7;
+}
+/* 最近文章列表 */
+.section-header{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:12px;
+  border-top:1px solid #1714111f;
+  margin:40px 0 8px;
+  padding-top:16px;
+}
+.section-header h2{
+  letter-spacing:.14em;
+  text-transform:uppercase;
+  font-family:Helvetica Neue,Helvetica,Arial,sans-serif;
+  font-size:.85rem;
+  margin:0;
+  font-weight:500;
+}
+.article-list__items{
+  list-style:none;
+  margin:0;
+  padding:0;
+}
+.article-row{
+  display:grid;
+  grid-template-columns:84px minmax(0,1fr) 110px;
+  gap:18px;
+  padding:18px 0;
+  border-top:1px solid #1714111f;
+}
+.article-row:last-child{
+  border-bottom:1px solid #1714111f;
+}
+.article-row__meta{
+  letter-spacing:.14em;
+  text-transform:uppercase;
+  color:#171411ad;
+  font-family:Helvetica Neue,Helvetica,Arial,sans-serif;
+  font-size:.78rem;
+}
+.article-row__date{
+  text-align:right;
+}
+.article-row h3{
+  margin:0;
+  font-size:1.5rem;
+  font-weight:500;
+  line-height:1.15;
+}
+.article-row__body p{
+  color:#171411b3;
+  margin:12px 0 0;
+  line-height:1.7;
+}
+/* 文章详情 prose 样式 */
+.prose{
+  border-top:1px solid #1714111f;
+  padding-top:18px;
+  max-width:720px;
+}
+.prose p{
+  margin:0 0 24px;
+  font-size:1.08rem;
+  line-height:2;
+}
+.prose h2{
+  border-top:1px solid #1714111a;
+  padding-top:24px;
+  margin:56px 0 18px;
+  font-size:clamp(1.6rem,3vw,2.2rem);
+  font-weight:500;
+  line-height:1.06;
+}
+.prose blockquote{
+  color:#171411c7;
+  background:#17141108;
+  border-left:3px solid #1714114d;
+  margin:32px 0;
+  padding:16px 20px;
+  font-size:1.05rem;
+  line-height:1.8;
+}
+/* 响应式适配移动端 */
+@media (max-width:720px){
+  .home-grid,.article-row{
+    grid-template-columns:1fr;
+  }
+  .article-row__date{
+    text-align:left;
+  }
+}
+</style>
+</head>
+<body>
+<div class="page-shell">
+  <header class="site-header">
+    <div class="site-header__top">
+      <span class="site-header__eyebrow">wenwen blog</span>
+      <a class="language-switch" href="/en">Zh / En</a>
+    </div>
+    <nav aria-label="Primary" class="site-header__nav">
+      <span><a href="/articles">Articles</a> / </span>
+      <span><a href="/notes">Notes</a> / </span>
+      <span><a href="/photos">Photos</a> / </span>
+      <span><a href="/about">About</a></span>
+    </nav>
+    <div aria-hidden="true" class="editorial-rule"></div>
+  </header>
+
+  <section class="home-hero">
+    <h1>在公开写作里，慢慢整理自己的生活秩序</h1>
+    <p>长期写作，保持输出（尽量一周一更）</p>
+  </section>
+
+  <section class="home-grid">
+    <article class="cover-story">
+      <p class="kicker">Cover Story</p>
+      <h2>把长期主义做成一种可感知的写作节奏</h2>
+      <p class="summary">让写作成为一种稳定的公开生活节奏。</p>
+      <div class="meta">
+        <span>Essay</span>
+        <span>14 min read</span>
+        <span>2026-04-14</span>
+      </div>
+      <a class="text-link" href="/articles/long-term-rhythm">Read article</a>
+    </article>
+
+    <div class="home-grid__side">
+      <section aria-label="Notes" class="side-module">
+        <p class="kicker">Notes</p>
+        <ul class="side-module__list">
+          <li><strong>享受早睡复利</strong></li>
+          <li><strong>静夜思</strong></li>
+          <li><strong>更新了服务器</strong></li>
+        </ul>
+      </section>
+      <section aria-label="Photos" class="side-module">
+        <p class="kicker">Photos</p>
+        <ul class="side-module__list">
+          <li>
+            <strong>街角</strong>
+            <p>午后的光很干净，玩偶被楼群抬起来，像突然闯进城市的一场小巡游。</p>
+          </li>
+          <li>
+            <strong>金色花枝</strong>
+            <p>一截花枝探进很亮的天里，风一过，颜色像被太阳轻轻吹开。</p>
+          </li>
+        </ul>
+      </section>
+    </div>
+  </section>
+
+  <section class="article-list">
+    <div class="section-header">
+      <h2>Recent Articles</h2>
+      <span>View all</span>
+    </div>
+    <ul class="article-list__items">
+      <li class="article-row">
+        <div class="article-row__meta">Essay</div>
+        <div class="article-row__body">
+          <h3><a href="/articles/first-hackathon-retrospective">【复盘】回望第一次黑客松</a></h3>
+          <p>第一次参加黑客松，项目没闭环、路演没声音，却意外拿到了荣誉奖。回头复盘这 48 小时里关于调研、核心闭环、AI 兜底和最后展示的教训。</p>
+        </div>
+        <div class="article-row__meta article-row__date">2026-07-21</div>
+      </li>
+      <li class="article-row">
+        <div class="article-row__meta">Essay</div>
+        <div class="article-row__body">
+          <h3><a href="/articles/ontology-driven-ai-data-management-intro">【读书】本体驱动的AI数据管理（序） ---先随便谈谈</a></h3>
+          <p>序言的序言</p>
+        </div>
+        <div class="article-row__meta article-row__date">2026-06-24</div>
+      </li>
+      <li class="article-row">
+        <div class="article-row__meta">Essay</div>
+        <div class="article-row__body">
+          <h3><a href="/articles/harness-to-html">从harness到输出HTML，A畜是不是想割我？</a></h3>
+          <p>这个题我从四月份就想写。那个时候 harness engineering 爆火，大家都在聊怎么把 Agent 控得更稳，怎么让模型像一个真正的员工一样长期干活。我当时第一反应是，卧槽，这个东西好像很牛。有理有据，令人信服。</p>
+        </div>
+        <div class="article-row__meta article-row__date">2026-06-23</div>
+      </li>
+    </ul>
+  </section>
+</div>
+</body>
+</html>

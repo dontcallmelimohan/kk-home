@@ -1,0 +1,15 @@
+{
+  "name": "wenwen-blog",
+  "version": "1.0.0",
+  "private": true,
+  "description": "wenwen blog —— 自托管写作站点，SSR + 文件存储 + 浏览器可编辑",
+  "main": "server.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
