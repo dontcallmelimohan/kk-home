@@ -281,6 +281,18 @@ async function main() {
         res.status !== 200 ? 'HTTP ' + res.status : '缺少内容：' + missing.join(', '));
     }
 
+    // 首页的 Lab 入口。它跟着 ITEMS 里的 home 标记走，是那种「顺手重构就没了、
+    // 而且没了也不会报错」的东西 —— 下面的死链检查只能证明「出现了的链接没坏」，
+    // 证明不了「入口还在」。所以在这里单独钉一条。
+    {
+      const res = await request('GET', '/');
+      const module = res.raw.includes('aria-label="Lab"') && res.raw.includes('side-module--lab');
+      const entries = (res.raw.match(/href="\/lab\/[a-z0-9-]+"/g) || []).length;
+      const footer = /<footer[\s\S]*?href="\/lab"/.test(res.raw);
+      check('首页有 Lab 入口模块，且带上子页链接', module && entries >= 2, '子页链接 ' + entries + ' 个');
+      check('页脚的 Lab 入口还在', footer);
+    }
+
     console.log('\n— 死链是否清零 —');
     const home = await request('GET', '/');
     const hrefs = Array.from(new Set((home.raw.match(/href="\/[^"#]*"/g) || []).map((h) => h.slice(6, -1))));
@@ -510,18 +522,40 @@ async function main() {
     // 这两个正是各 Demo 页面被搬进来时唯一应该被动过的地方。
     const labBroken = [];
     const labNoBack = [];
+    const labAssets = new Set();
     for (const item of lab.ITEMS) {
-      const res = await request('GET', '/lab/' + item.slug);
+      const page = '/lab/' + item.slug;
+      const res = await request('GET', page);
       if (res.status !== 200) {
-        labBroken.push('/lab/' + item.slug + ' → HTTP ' + res.status);
+        labBroken.push(page + ' → HTTP ' + res.status);
         continue;
       }
       if (!res.raw.includes('/lab/_lab.css') || !res.raw.includes('href="/lab"')) {
         labNoBack.push(item.slug);
       }
+      // 按浏览器同一套规则解析页内引用 —— 不能只挑以 / 开头的那些。
+      // 出问题的形态恰恰是相对路径：地址 /lab/2048 的基准目录是 /lab/（最后一个斜杠
+      // 之前），于是 js/tile.js 会被解析成 /lab/js/tile.js。只收绝对路径的写法
+      // 会把这个形态整个漏掉，测试照样全绿。
+      for (const m of res.raw.match(/(?:href|src)="([^"]+)"/g) || []) {
+        const href = m.slice(m.indexOf('"') + 1, -1);
+        if (/^(?:[a-z][a-z0-9+.-]*:|#|\/\/)/i.test(href)) continue;
+        labAssets.add(new URL(href, 'http://127.0.0.1' + page).pathname);
+      }
     }
     check('实验区 ' + lab.ITEMS.length + ' 个页面全部可访问', labBroken.length === 0, labBroken.join(', '));
     check('每个实验页都带统一的返回入口', labNoBack.length === 0, labNoBack.join(', '));
+
+    // 页面返回 200 ≠ 页面正常。搬进来的 Demo 原来都平放在仓库根目录，
+    // 换成 /lab/<slug> 这种地址之后，页里的相对引用会被解析到 /lab/ 下，整批 404 ——
+    // CSS 和脚本一个都没加载，地址是通的、页面看起来是坏的。
+    // 所以把上面解析出来的地址逐个真打一遍。
+    const deadAssets = [];
+    for (const url of labAssets) {
+      const r = await request('GET', url);
+      if (r.status !== 200) deadAssets.push(url + ' → HTTP ' + r.status);
+    }
+    check('实验页引用的 ' + labAssets.size + ' 个地址全部可访问', deadAssets.length === 0, deadAssets.join(', '));
 
     const labCss = await request('GET', '/lab/_lab.css');
     check('实验区共享样式可访问且 MIME 正确',

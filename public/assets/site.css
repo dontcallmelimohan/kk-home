@@ -180,6 +180,17 @@ a:hover{
   margin:12px 0 0;
   line-height:1.7;
 }
+/* 首页的 Lab 模块。它列的是「提示」不是「图片说明」，一行就完，
+   所以把间距收回来；收尾那个链接也不用正文那么大的留白。 */
+.side-module--lab .side-module__list p{
+  margin:6px 0 0;
+  font-size:.86rem;
+  line-height:1.6;
+}
+.side-module--lab .text-link{
+  margin-top:14px;
+  font-size:.82rem;
+}
 /* 最近文章列表 */
 .section-header{
   display:flex;

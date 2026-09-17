@@ -6,12 +6,16 @@
   <meta charset="utf-8">
   <title>2048</title>
 
-  <link href="style/main.css" rel="stylesheet" type="text/css">
-  <link rel="shortcut icon" href="favicon.ico">
-  <link rel="apple-touch-icon" href="meta/apple-touch-icon.png">
-  <link rel="apple-touch-startup-image" href="meta/apple-touch-startup-image-640x1096.png"
+  <!-- 这里的资源一律写绝对路径。
+       页面地址是 /lab/2048（结尾没有斜杠），相对路径会被浏览器按父目录 /lab/ 解析，
+       于是 style/main.css 变成 /lab/style/main.css —— 全部 404，整页没样式也没逻辑。
+       写死 /lab/2048/ 前缀就与地址无关了。 -->
+  <link href="/lab/2048/style/main.css" rel="stylesheet" type="text/css">
+  <link rel="shortcut icon" href="/lab/2048/favicon.ico">
+  <link rel="apple-touch-icon" href="/lab/2048/meta/apple-touch-icon.png">
+  <link rel="apple-touch-startup-image" href="/lab/2048/meta/apple-touch-startup-image-640x1096.png"
     media="(device-width: 320px) and (device-height: 568px) and (-webkit-device-pixel-ratio: 2)"> <!-- iPhone 5+ -->
-  <link rel="apple-touch-startup-image" href="meta/apple-touch-startup-image-640x920.png"
+  <link rel="apple-touch-startup-image" href="/lab/2048/meta/apple-touch-startup-image-640x920.png"
     media="(device-width: 320px) and (device-height: 480px) and (-webkit-device-pixel-ratio: 2)">
   <!-- iPhone, retina -->
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -98,13 +102,7 @@
       <br>
       <a href="/lab/weight">Weight</a>
       <br>
-      <a href="/lab/vibrate">Haptics</a>
-      <br>
       <a href="/lab/glass">Glass pad</a>
-      <br>
-      <a href="/lab/3d">3D glass</a>
-      <br>
-      <a href="/lab/camera">Camera</a>
     </p>
     <hr>
     <p>
@@ -113,16 +111,16 @@
     </p>
   </div>
 
-  <script src="js/bind_polyfill.js"></script>
-  <script src="js/classlist_polyfill.js"></script>
-  <script src="js/animframe_polyfill.js"></script>
-  <script src="js/keyboard_input_manager.js"></script>
-  <script src="js/html_actuator.js"></script>
-  <script src="js/grid.js"></script>
-  <script src="js/tile.js"></script>
-  <script src="js/local_storage_manager.js"></script>
-  <script src="js/game_manager.js"></script>
-  <script src="js/application.js"></script>
+  <script src="/lab/2048/js/bind_polyfill.js"></script>
+  <script src="/lab/2048/js/classlist_polyfill.js"></script>
+  <script src="/lab/2048/js/animframe_polyfill.js"></script>
+  <script src="/lab/2048/js/keyboard_input_manager.js"></script>
+  <script src="/lab/2048/js/html_actuator.js"></script>
+  <script src="/lab/2048/js/grid.js"></script>
+  <script src="/lab/2048/js/tile.js"></script>
+  <script src="/lab/2048/js/local_storage_manager.js"></script>
+  <script src="/lab/2048/js/game_manager.js"></script>
+  <script src="/lab/2048/js/application.js"></script>
 
 </body>
 
