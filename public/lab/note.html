@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>留言板</title>
+    <link rel="stylesheet" href="/lab/_lab.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: system-ui
+        }
+
+        body {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 62px 18px 40px;
+            background: #fff
+        }
+
+        input {
+            width: 100%;
+            padding: 16px 18px;
+            border: 1px solid #eee;
+            border-radius: 14px;
+            font-size: 16px;
+            outline: none;
+            margin-bottom: 6px
+        }
+
+        input:focus {
+            border-color: #ddd
+        }
+
+        .hint {
+            font-size: 12px;
+            color: #999;
+            height: 16px;
+            margin-bottom: 18px;
+            padding-left: 4px
+        }
+
+        .hint.is-error {
+            color: #d33
+        }
+
+        .msg {
+            padding: 14px 0;
+            border-bottom: 1px solid #f7f7f7;
+            font-size: 16px;
+            line-height: 1.5;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start
+        }
+
+        .msg-text {
+            flex: 1;
+            word-break: break-word
+        }
+
+        .del {
+            color: #999;
+            font-size: 12px;
+            cursor: pointer;
+            padding-left: 10px;
+            flex: none
+        }
+
+        .time {
+            font-size: 12px;
+            color: #999;
+            margin-top: 6px
+        }
+
+        .empty {
+            color: #bbb;
+            font-size: 15px;
+            padding: 40px 0;
+            text-align: center
+        }
+
+        .count {
+            color: #bbb;
+            font-size: 12px;
+            padding: 20px 0;
+            text-align: center
+        }
+    </style>
+</head>
+
+<body>
+    <a class="lab-back" href="/lab">← Lab</a>
+
+    <input id="i" maxlength="200" placeholder="写下你的留言…（回车发送）" autocomplete="off">
+    <div class="hint" id="hint"></div>
+    <div id="m"></div>
+    <div class="count" id="count"></div>
+
+    <script>
+        var input = document.getElementById('i');
+        var listBox = document.getElementById('m');
+        var hint = document.getElementById('hint');
+        var count = document.getElementById('count');
+        var canDelete = false;
+
+        function say(text, isError) {
+            hint.textContent = text;
+            hint.className = 'hint' + (isError ? ' is-error' : '');
+        }
+
+        // 一律用 textContent 拼节点：留言是别人写的，
+        // 直接塞 innerHTML 等于让别人往你页面里注脚本。
+        function render(messages) {
+            listBox.innerHTML = '';
+            if (!messages.length) {
+                var e = document.createElement('div');
+                e.className = 'empty';
+                e.textContent = '还没有人留言，你可以当第一个。';
+                listBox.appendChild(e);
+                count.textContent = '';
+                return;
+            }
+            messages.forEach(function (item) {
+                var row = document.createElement('div');
+                row.className = 'msg';
+
+                var body = document.createElement('div');
+                body.className = 'msg-text';
+                body.appendChild(document.createTextNode(item.content));
+
+                var time = document.createElement('div');
+                time.className = 'time';
+                time.textContent = new Date(item.at).toLocaleString('zh-CN');
+                body.appendChild(time);
+
+                row.appendChild(body);
+
+                if (canDelete) {
+                    var del = document.createElement('div');
+                    del.className = 'del';
+                    del.textContent = '删除';
+                    del.onclick = function () { remove(item.id); };
+                    row.appendChild(del);
+                }
+                listBox.appendChild(row);
+            });
+            count.textContent = '共 ' + messages.length + ' 条';
+        }
+
+        function load() {
+            return fetch('/api/lab/messages')
+                .then(function (r) { return r.json(); })
+                .then(function (d) { render(d.messages || []); })
+                .catch(function () { say('连不上服务器', true); });
+        }
+
+        function send() {
+            var text = input.value.trim();
+            if (!text) return;
+            input.disabled = true;
+            fetch('/api/lab/messages', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ content: text })
+            }).then(function (r) {
+                return r.json().then(function (d) { return { ok: r.ok, data: d }; });
+            }).then(function (r) {
+                if (!r.ok) { say(r.data.error || '发不出去', true); return; }
+                input.value = '';
+                say('已发出');
+                render(r.data.messages);
+            }).catch(function () {
+                say('网络出错，稍后再试', true);
+            }).then(function () {
+                input.disabled = false;
+                input.focus();
+            });
+        }
+
+        function remove(id) {
+            if (!confirm('确定删除这条留言？')) return;
+            fetch('/api/lab/messages/' + encodeURIComponent(id), { method: 'DELETE' })
+                .then(function (r) {
+                    return r.json().then(function (d) { return { ok: r.ok, data: d }; });
+                })
+                .then(function (r) {
+                    if (!r.ok) { say(r.data.error || '删不掉', true); return; }
+                    render(r.data.messages);
+                });
+        }
+
+        input.addEventListener('keydown', function (e) {
+            if (e.key === 'Enter') send();
+        });
+
+        // 登录状态决定要不要显示「删除」。留言板本身是公开可看的。
+        fetch('/api/auth/status')
+            .then(function (r) { return r.json(); })
+            .then(function (d) { canDelete = Boolean(d.loggedIn); return load(); })
+            .catch(function () { return load(); });
+    </script>
+</body>
+
+</html>

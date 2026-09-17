@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>画板</title>
+    <link rel="stylesheet" href="/lab/_lab.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box
+        }
+
+        body {
+            background: #fff;
+            overflow: hidden;
+            height: 100vh
+        }
+
+        #canvas {
+            display: block;
+            width: 100%;
+            height: calc(100% - 50px)
+        }
+
+        .bar {
+            height: 50px;
+            background: #f8f8f8;
+            display: flex;
+            align-items: center;
+            justify-content: space-around;
+            padding: 0 5px
+        }
+
+        button {
+            border: none;
+            background: none;
+            font-size: 14px;
+            padding: 0 4px
+        }
+
+        input {
+            border: none;
+            background: none
+        }
+
+        input[type=color] {
+            width: 30px;
+            height: 30px
+        }
+
+        input[type=range] {
+            width: 70px
+        }
+    </style>
+</head>
+
+<body>
+    <div class="bar">
+        <a class="lab-back-inline" href="/lab">← Lab</a>
+        <button id="undo">撤销</button>
+        <button id="redo">重做</button>
+        <button id="clear">清空</button>
+        <button id="save">保存</button>
+        <input type="color" id="color">
+        <input type="range" min="1" max="30" value="3" id="w">
+    </div>
+    <canvas id="canvas"></canvas>
+
+    <script>
+        const c = document.getElementById('canvas'), x = c.getContext('2d')
+        let p = 0, h = [], s = -1, lx = 0, ly = 0
+
+        function r() { c.width = window.innerWidth; c.height = window.innerHeight - 50; if (s >= 0) { const i = new Image(); i.src = h[s]; i.onload = () => { x.clearRect(0, 0, c.width, c.height); x.drawImage(i, 0, 0) } } }
+        function S() { s++; if (s < h.length) h.length = s; h.push(c.toDataURL()); h.length > 30 && h.shift() }
+        function U() { s > 0 && (s--, r()) }
+        function R() { s < h.length - 1 && (s++, r()) }
+        function C() { x.clearRect(0, 0, c.width, c.height); S() }
+        function V() { const a = document.createElement('a'); a.download = '画板.png'; a.href = c.toDataURL(); a.click() }
+
+        function D(e) { if (!p) return; const b = c.getBoundingClientRect(), X = e.clientX - b.left, Y = e.clientY - b.top; x.beginPath(); x.moveTo(lx, ly); x.lineTo(X, Y); x.lineCap = 'round'; x.strokeStyle = document.getElementById('color').value; x.lineWidth = document.getElementById('w').value; x.stroke(); lx = X; ly = Y }
+
+        c.onmousedown = e => { p = 1; const b = c.getBoundingClientRect(); lx = e.clientX - b.left; ly = e.clientY - b.top }
+        c.onmousemove = D
+        c.onmouseup = () => { p = 0; S() }
+        c.onmouseout = () => p = 0
+
+        c.ontouchstart = e => { e.preventDefault(); c.onmousedown(e.touches[0]) }
+        c.ontouchmove = e => { e.preventDefault(); D(e.touches[0]) }
+        c.ontouchend = () => c.onmouseup()
+
+        document.getElementById('undo').onclick = U
+        document.getElementById('redo').onclick = R
+        document.getElementById('clear').onclick = C
+        document.getElementById('save').onclick = V
+        window.onresize = r; r(); S()
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>极简图片相册</title>
+    <link rel="stylesheet" href="/lab/_lab.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background: #f8f6f0;
+            color: #2c2c2c;
+            min-height: 100vh;
+            padding: 0;
+        }
+
+        .header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: rgba(248, 246, 240, 0.95);
+            backdrop-filter: blur(20px);
+            padding: 12px 20px 12px 96px;
+            z-index: 100;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+            border-bottom: 1px solid #e8e6e0;
+        }
+
+        .header h1 {
+            font-size: 17px;
+            font-weight: 600;
+            color: #2c2c2c;
+        }
+
+        .upload-btn {
+            background: #d8ebff;
+            color: #007aff;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 15px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background 0.2s;
+            flex: none;
+        }
+
+        .upload-btn:hover {
+            background: #c6deff;
+        }
+
+        .upload-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .upload-input {
+            display: none;
+        }
+
+        .gallery {
+            padding: 76px 8px 40px 8px;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(124px, 1fr));
+            gap: 8px;
+            max-width: 100%;
+        }
+
+        .photo {
+            aspect-ratio: 1;
+            background: #ffffff;
+            overflow: hidden;
+            position: relative;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+            border: 1px solid #f0ede6;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .photo:hover {
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+        }
+
+        .photo img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+
+        .empty-state {
+            grid-column: 1 / -1;
+            text-align: center;
+            color: #a8a8a8;
+            font-size: 16px;
+            padding: 100px 20px;
+            font-weight: 400;
+            line-height: 1.9;
+        }
+
+        .empty-state small {
+            display: block;
+            font-size: 13px;
+            color: #c0c0c0
+        }
+
+        /* 长按效果 */
+        .photo.deleting {
+            opacity: 0.6;
+            transform: scale(0.95);
+        }
+
+        /* 灯箱 */
+        .lightbox {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.9);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 200;
+            padding: 20px;
+        }
+
+        .lightbox.is-open {
+            display: flex;
+        }
+
+        .lightbox img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+            border-radius: 6px;
+        }
+
+        /* 需要登录时挡一层，登完继续原来的动作 */
+        .gate {
+            position: fixed;
+            inset: 0;
+            background: rgba(248, 246, 240, 0.96);
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 14px;
+            z-index: 300;
+            padding: 30px;
+        }
+
+        .gate.is-open {
+            display: flex;
+        }
+
+        .gate h2 {
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .gate p {
+            color: #8a8a8a;
+            font-size: 14px;
+            text-align: center;
+            max-width: 320px;
+            line-height: 1.7;
+        }
+
+        .gate input {
+            width: 240px;
+            padding: 13px 16px;
+            border: 1px solid #e2ded4;
+            border-radius: 12px;
+            font-size: 16px;
+            outline: none;
+            text-align: center;
+        }
+
+        .gate-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .gate button {
+            padding: 11px 22px;
+            border: none;
+            border-radius: 20px;
+            font-size: 15px;
+            font-weight: 500;
+            cursor: pointer;
+        }
+
+        .gate .primary {
+            background: #007aff;
+            color: #fff;
+        }
+
+        .gate .ghost {
+            background: transparent;
+            color: #8a8a8a;
+        }
+
+        .gate .err {
+            color: #d33;
+            font-size: 13px;
+            min-height: 18px;
+        }
+
+        @media (max-width: 768px) {
+            .gallery {
+                grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+                padding: 68px 6px 30px 6px;
+                gap: 6px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <a class="lab-back" href="/lab">← Lab</a>
+
+    <div class="header">
+        <h1>相册</h1>
+        <button class="upload-btn" id="uploadBtn" onclick="document.getElementById('file').click()">上传</button>
+    </div>
+
+    <input type="file" id="file" class="upload-input" accept="image/*" multiple>
+
+    <div class="gallery" id="gallery"></div>
+
+    <div class="lightbox" id="lightbox" onclick="closeLightbox()">
+        <img id="lightboxImg" alt="">
+    </div>
+
+    <div class="gate" id="gate">
+        <h2>上传和删除需要登录</h2>
+        <p>相册本身是公开可看的。写入要验证身份，用的是和后台同一个管理密码。</p>
+        <input type="password" id="gatePass" placeholder="管理密码" autocomplete="current-password">
+        <div class="err" id="gateErr"></div>
+        <div class="gate-actions">
+            <button class="primary" id="gateOk">登录</button>
+            <button class="ghost" id="gateCancel">取消</button>
+        </div>
+    </div>
+
+    <script>
+        var gallery = document.getElementById('gallery');
+        var fileInput = document.getElementById('file');
+        var uploadBtn = document.getElementById('uploadBtn');
+        var loggedIn = false;
+        var pending = null;
+
+        function say(html) {
+            gallery.innerHTML = '<div class="empty-state">' + html + '</div>';
+        }
+
+        function load() {
+            say('加载中…');
+            return fetch('/api/lab/photos')
+                .then(function (r) { return r.json(); })
+                .then(function (d) {
+                    var photos = (d.photos || []).filter(function (p) { return p.src; });
+                    if (!photos.length) {
+                        say('暂无图片<br><small>点右上角上传，传上来的图会直接进博客的照片墙</small>');
+                        return;
+                    }
+                    gallery.innerHTML = '';
+                    photos.forEach(function (p) {
+                        var div = document.createElement('div');
+                        div.className = 'photo';
+                        var img = document.createElement('img');
+                        img.src = p.src;
+                        img.alt = p.title || '';
+                        img.loading = 'lazy';
+                        div.appendChild(img);
+
+                        div.onclick = function () { openLightbox(p.src); };
+
+                        // 长按 / 右键删除
+                        div.oncontextmenu = function (e) {
+                            e.preventDefault();
+                            askDelete(p, div);
+                        };
+                        div.ontouchstart = function () {
+                            div.timer = setTimeout(function () { askDelete(p, div); }, 600);
+                        };
+                        div.ontouchend = function () { clearTimeout(div.timer); };
+                        div.ontouchmove = function () { clearTimeout(div.timer); };
+
+                        gallery.appendChild(div);
+                    });
+                })
+                .catch(function () { say('加载失败'); });
+        }
+
+        function openLightbox(src) {
+            document.getElementById('lightboxImg').src = src;
+            document.getElementById('lightbox').classList.add('is-open');
+        }
+
+        function closeLightbox() {
+            document.getElementById('lightbox').classList.remove('is-open');
+            document.getElementById('lightboxImg').src = '';
+        }
+
+        /* ---------- 登录闸 ---------- */
+
+        function openGate(action) {
+            pending = action;
+            document.getElementById('gateErr').textContent = '';
+            document.getElementById('gatePass').value = '';
+            document.getElementById('gate').classList.add('is-open');
+            document.getElementById('gatePass').focus();
+        }
+
+        function closeGate() {
+            document.getElementById('gate').classList.remove('is-open');
+            pending = null;
+        }
+
+        function submitGate() {
+            var pass = document.getElementById('gatePass').value;
+            var btn = document.getElementById('gateOk');
+            btn.disabled = true;
+            fetch('/api/auth/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ password: pass })
+            }).then(function (r) {
+                return r.json().then(function (d) { return { ok: r.ok, data: d }; });
+            }).then(function (r) {
+                if (!r.ok) {
+                    document.getElementById('gateErr').textContent = r.data.error || '登录失败';
+                    return;
+                }
+                loggedIn = true;
+                var action = pending;
+                closeGate();
+                if (action) action();
+            }).catch(function () {
+                document.getElementById('gateErr').textContent = '网络出错';
+            }).then(function () {
+                btn.disabled = false;
+            });
+        }
+
+        document.getElementById('gateOk').onclick = submitGate;
+        document.getElementById('gateCancel').onclick = closeGate;
+        document.getElementById('gatePass').addEventListener('keydown', function (e) {
+            if (e.key === 'Enter') submitGate();
+        });
+
+        function requireLogin(action) {
+            if (loggedIn) return action();
+            openGate(action);
+        }
+
+        /* ---------- 上传 / 删除 ---------- */
+
+        fileInput.onchange = function () {
+            var files = Array.prototype.slice.call(fileInput.files);
+            if (!files.length) return;
+            requireLogin(function () { doUpload(files); });
+        };
+
+        function doUpload(files) {
+            var original = uploadBtn.textContent;
+            uploadBtn.textContent = '上传中 0/' + files.length;
+            uploadBtn.disabled = true;
+            var done = 0;
+            var failed = [];
+
+            // 一次发一个文件的原始内容，不走 multipart —— 服务端只需要
+            // 二进制 + 一个文件名，省掉拼边界的整套复杂度。
+            function next(i) {
+                if (i >= files.length) {
+                    uploadBtn.textContent = original;
+                    uploadBtn.disabled = false;
+                    fileInput.value = '';
+                    load().then(function () {
+                        if (failed.length) alert('有 ' + failed.length + ' 个没传上去：' + failed.join('；'));
+                    });
+                    return;
+                }
+                var f = files[i];
+                fetch('/api/lab/photos', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': f.type || 'application/octet-stream',
+                        'X-Photo-Name': encodeURIComponent(f.name)
+                    },
+                    body: f
+                }).then(function (r) {
+                    return r.json().then(function (d) { return { ok: r.ok, data: d }; });
+                }).then(function (r) {
+                    if (r.ok) done++;
+                    else failed.push(f.name + '（' + (r.data.error || '上传失败') + '）');
+                }).catch(function () {
+                    failed.push(f.name + '（网络出错）');
+                }).then(function () {
+                    uploadBtn.textContent = '上传中 ' + (i + 1) + '/' + files.length;
+                    next(i + 1);
+                });
+            }
+            next(0);
+        }
+
+        function askDelete(photo, element) {
+            requireLogin(function () {
+                if (!confirm('确定删除这张图片？')) return;
+                element.classList.add('deleting');
+                fetch('/api/lab/photos/' + encodeURIComponent(photo.id), { method: 'DELETE' })
+                    .then(function (r) {
+                        return r.json().then(function (d) { return { ok: r.ok, data: d }; });
+                    })
+                    .then(function (r) {
+                        if (!r.ok) { alert(r.data.error || '删除失败'); element.classList.remove('deleting'); return; }
+                        element.style.opacity = '0';
+                        setTimeout(load, 250);
+                    })
+                    .catch(function () {
+                        alert('删除失败');
+                        element.classList.remove('deleting');
+                    });
+            });
+        }
+
+        fetch('/api/auth/status')
+            .then(function (r) { return r.json(); })
+            .then(function (d) {
+                loggedIn = Boolean(d.loggedIn);
+                uploadBtn.title = loggedIn ? '上传照片' : '上传需要先登录';
+            })
+            .catch(function () { })
+            .then(load);
+    </script>
+</body>
+
+</html>

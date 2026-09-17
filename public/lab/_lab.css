@@ -1,0 +1,72 @@
+/* 实验区公共样式。
+   这里只做一件事：给每个独立 Demo 一个统一的返回入口。
+   刻意保持极简，绝不去覆盖各页面自己的视觉语言 —— 2048 是游戏，
+   3d / glass 是设备能力演示，它们各自的样子就是这个 Demo 的一部分。 */
+
+.lab-back {
+  position: fixed;
+  top: 14px;
+  left: 14px;
+  z-index: 2147483647;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 7px 14px 7px 11px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 999px;
+  background: rgba(22, 20, 18, 0.62);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.18);
+  color: #fff !important;
+  font: 500 13px/1 -apple-system, BlinkMacSystemFont, system-ui, 'Helvetica Neue', sans-serif;
+  letter-spacing: 0.02em;
+  text-decoration: none !important;
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  transition: background 0.15s ease, transform 0.15s ease;
+}
+
+.lab-back:hover {
+  background: rgba(22, 20, 18, 0.84);
+}
+
+.lab-back:active {
+  transform: scale(0.96);
+}
+
+/* 底部横条版：给 screen 被完全占满、左上角属于交互热区的页面用 */
+.lab-back--bottom {
+  top: auto;
+  bottom: 14px;
+}
+
+/* 内联版：给整屏都是可交互热区的页面用（画布的左上角也要能落笔），
+   塞进页面自己的工具条里，不占用任何可绘制区域。 */
+.lab-back-inline {
+  display: inline-flex;
+  align-items: center;
+  color: #666 !important;
+  font: 500 13px/1 -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  text-decoration: none !important;
+  white-space: nowrap;
+  padding: 4px 6px;
+  border-radius: 6px;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.lab-back-inline:hover {
+  background: rgba(0, 0, 0, 0.06);
+  color: #222 !important;
+}
+
+/* 页面自带深色主视觉时，返回入口改用浅色描边以免糊在一起 */
+.lab-back--outline {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.42);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+.lab-back--outline:hover {
+  background: rgba(255, 255, 255, 0.2);
+}

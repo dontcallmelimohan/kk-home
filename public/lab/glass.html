@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <link rel="stylesheet" href="/lab/_lab.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
+    <title>Universal 3x3 Haptic Pad</title>
+    <style>
+        body {
+            margin: 0;
+            background: #000;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: -apple-system, system-ui, sans-serif;
+            overflow: hidden;
+            /* 防止 PC 端用户选中文字 */
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        .pad-grid {
+            display: grid;
+            /* 适配移动端：使用更小的单位 vmin 确保在横竖屏下都能完整显示 */
+            grid-template-columns: repeat(3, min(110px, 28vw));
+            gap: 12px;
+            perspective: 1000px;
+        }
+
+        .pad {
+            aspect-ratio: 1 / 1;
+            /* 保持正方形 */
+            border-radius: 30px;
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            transition: transform 0.1s cubic-bezier(0.2, 0, 0.2, 1), background 0.2s;
+            touch-action: none;
+            -webkit-tap-highlight-color: transparent;
+            cursor: pointer;
+        }
+
+        /* 标签文字极简化 */
+        .pad span {
+            font-size: 10px;
+            opacity: 0.4;
+            letter-spacing: 1px;
+            margin-top: 5px;
+        }
+
+        .pad b {
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        /* 点击效果 */
+        .pad:active,
+        .pad.is-active {
+            transform: scale(0.92) translateZ(-10px);
+            background: rgba(255, 255, 255, 0.15);
+            border-color: rgba(255, 255, 255, 0.4);
+        }
+
+        .info {
+            position: fixed;
+            bottom: 30px;
+            color: #333;
+            font-size: 10px;
+            text-transform: uppercase;
+        }
+    </style>
+</head>
+
+<body>
+  <a class="lab-back lab-back--outline" href="/lab">← Lab</a>
+
+    <div class="pad-grid" id="grid">
+        <div class="pad" data-type="kick"><b>A</b><span>KICK</span></div>
+        <div class="pad" data-type="kick"><b>B</b><span>BOOM</span></div>
+        <div class="pad" data-type="snare"><b>C</b><span>CRISP</span></div>
+        <div class="pad" data-type="snare"><b>D</b><span>SNAP</span></div>
+        <div class="pad" data-type="hihat"><b>E</b><span>SHARP</span></div>
+        <div class="pad" data-type="hihat"><b>F</b><span>TICK</span></div>
+        <div class="pad" data-type="tom"><b>G</b><span>LOW</span></div>
+        <div class="pad" data-type="tom"><b>H</b><span>MID</span></div>
+        <div class="pad" data-type="click"><b>I</b><span>TAPTIC</span></div>
+    </div>
+
+    <div class="info">Cross-Platform Web Audio Engine / 2026 Edition</div>
+
+    <script>
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+
+        // 增强音色库
+        const sounds = {
+            kick: (freq = 120) => {
+                const o = ctx.createOscillator(), g = ctx.createGain();
+                o.frequency.setValueAtTime(freq, ctx.currentTime);
+                o.frequency.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.15);
+                g.gain.setValueAtTime(0.8, ctx.currentTime);
+                g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.15);
+                o.connect(g); g.connect(ctx.destination);
+                o.start(); o.stop(ctx.currentTime + 0.15);
+            },
+            snare: (decay = 0.1) => {
+                const g = ctx.createGain(), b = ctx.createBufferSource();
+                const buf = ctx.createBuffer(1, ctx.sampleRate * decay, ctx.sampleRate);
+                for (let i = 0; i < buf.length; i++) buf.getChannelData(0)[i] = Math.random() * 2 - 1;
+                b.buffer = buf;
+                g.gain.setValueAtTime(0.3, ctx.currentTime);
+                g.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + decay);
+                b.connect(g); g.connect(ctx.destination);
+                b.start();
+            },
+            hihat: (dur = 0.02) => {
+                const g = ctx.createGain(), b = ctx.createBufferSource();
+                const buf = ctx.createBuffer(1, ctx.sampleRate * dur, ctx.sampleRate);
+                for (let i = 0; i < buf.length; i++) buf.getChannelData(0)[i] = Math.random() * 2 - 1;
+                b.buffer = buf;
+                g.gain.setValueAtTime(0.15, ctx.currentTime);
+                g.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + dur);
+                b.connect(g); g.connect(ctx.destination);
+                b.start();
+            },
+            tom: (f = 200) => {
+                const o = ctx.createOscillator(), g = ctx.createGain();
+                o.type = 'triangle';
+                o.frequency.setValueAtTime(f, ctx.currentTime);
+                o.frequency.exponentialRampToValueAtTime(f / 2, ctx.currentTime + 0.2);
+                g.gain.setValueAtTime(0.4, ctx.currentTime);
+                g.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.2);
+                o.connect(g); g.connect(ctx.destination);
+                o.start(); o.stop(ctx.currentTime + 0.2);
+            },
+            click: () => {
+                const o = ctx.createOscillator(), g = ctx.createGain();
+                o.frequency.setValueAtTime(220, ctx.currentTime);
+                g.gain.setValueAtTime(0.1, ctx.currentTime);
+                g.gain.linearRampToValueAtTime(0.01, ctx.currentTime + 0.04);
+                o.connect(g); g.connect(ctx.destination);
+                o.start(); o.stop(ctx.currentTime + 0.04);
+            }
+        };
+
+        // 处理逻辑：适配触控与鼠标
+        function handleTrigger(e) {
+            e.preventDefault();
+            const pad = e.target.closest('.pad');
+            if (!pad) return;
+
+            if (ctx.state === 'suspended') ctx.resume();
+
+            const type = pad.getAttribute('data-type');
+            // 简单的音色变体逻辑
+            const index = Array.from(pad.parentNode.children).indexOf(pad);
+            if (type === 'kick') sounds.kick(120 - index * 10);
+            else if (type === 'tom') sounds.tom(200 - index * 20);
+            else sounds[type]();
+        }
+
+        const grid = document.getElementById('grid');
+
+        // iOS/Android 触控
+        grid.addEventListener('touchstart', handleTrigger, { passive: false });
+
+        // Windows/macOS 鼠标
+        grid.addEventListener('mousedown', (e) => {
+            // 防止触控设备重复触发 mousedown
+            if (e.detail === 0) return;
+            handleTrigger(e);
+        });
+
+    </script>
+</body>
+
+</html>

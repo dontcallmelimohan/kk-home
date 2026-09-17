@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <link rel="stylesheet" href="/lab/_lab.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>iOS 触感音效测试</title>
+    <style>
+        body {
+            font-family: -apple-system, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            background-color: #f2f2f7;
+            margin: 0;
+        }
+
+        .btn {
+            background-color: #ffffff;
+            color: #007AFF;
+            border: 1px solid #007AFF;
+            padding: 20px 40px;
+            font-size: 20px;
+            font-weight: 600;
+            border-radius: 15px;
+            cursor: pointer;
+            transition: all 0.1s;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+            -webkit-tap-highlight-color: transparent;
+            /* 移除移动端点击蓝框 */
+            touch-action: manipulation;
+        }
+
+        /* 模拟 iOS 原生按钮按下的缩放感 */
+        .btn:active {
+            background-color: #ebebf0;
+            transform: scale(0.95);
+        }
+
+        .info {
+            margin-top: 30px;
+            color: #8e8e93;
+            font-size: 14px;
+            text-align: center;
+            padding: 0 20px;
+        }
+    </style>
+</head>
+
+<body>
+  <a class="lab-back" href="/lab">← Lab</a>
+
+    <button class="btn" id="hapticBtn">模拟点击反馈</button>
+
+    <div class="info">
+        <p>🔊 请确保 iPhone <b>未开启静音模式</b></p>
+        <p>此 Demo 使用 Web Audio 模拟 Taptic Engine 的短促咔嗒声</p>
+    </div>
+
+    <script>
+        // 1. 延迟初始化 AudioContext (iOS 兼容性关键)
+        let audioCtx = null;
+
+        function playHapticClick() {
+            // 在第一次点击时创建或恢复上下文
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+
+            // 频率设置：150Hz 左右会有沉闷的木质感，更像物理震动声
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(150, audioCtx.currentTime);
+
+            // 音量曲线：从 0.2 快速降到 0.01，制造“咔嗒”瞬态
+            gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.08);
+
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.08);
+        }
+
+        document.getElementById('hapticBtn').addEventListener('click', () => {
+            playHapticClick();
+            console.log("Audio Haptic Triggered");
+        });
+    </script>
+</body>
+
+</html>

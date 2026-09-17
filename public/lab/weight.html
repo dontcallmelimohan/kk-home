@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>体重记录</title>
+    <link rel="stylesheet" href="/lab/_lab.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            background: #fafafa;
+            min-height: 100vh;
+            padding: 40px 20px;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            font-size: 32px;
+            font-weight: 300;
+            text-align: center;
+            margin-bottom: 60px;
+            letter-spacing: -0.5px;
+        }
+
+        .input-section {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 24px;
+            margin-bottom: 40px;
+        }
+
+        input {
+            width: 200px;
+            padding: 16px 20px;
+            font-size: 20px;
+            text-align: center;
+            border: none;
+            border-bottom: 2px solid #333;
+            background: transparent;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+
+        input::placeholder {
+            color: #999;
+        }
+
+        input:focus {
+            border-bottom-color: #000;
+        }
+
+        button {
+            padding: 12px 40px;
+            font-size: 14px;
+            letter-spacing: 0.5px;
+            border: 1px solid #333;
+            background: transparent;
+            color: #333;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        button:hover {
+            background: #333;
+            color: white;
+        }
+
+        #message {
+            min-height: 20px;
+            font-size: 13px;
+            color: #666;
+            text-align: center;
+        }
+
+        .success {
+            color: #28a745;
+        }
+
+        .error {
+            color: #dc3545;
+        }
+
+        .chart-container {
+            margin-top: 40px;
+        }
+
+        .chart-container svg {
+            display: block;
+            width: 100%;
+            height: auto;
+            overflow: visible;
+        }
+
+        .summary {
+            display: flex;
+            justify-content: center;
+            gap: 28px;
+            margin-top: 26px;
+            font-size: 13px;
+            color: #666;
+        }
+
+        .summary b {
+            display: block;
+            font-size: 18px;
+            font-weight: 500;
+            color: #333;
+            margin-top: 4px
+        }
+
+        .records {
+            list-style: none;
+            margin-top: 46px;
+            border-top: 1px solid #eee;
+        }
+
+        .records li {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 11px 2px;
+            border-bottom: 1px solid #f4f4f4;
+            font-size: 14px;
+            color: #444;
+        }
+
+        .records .d {
+            color: #999;
+            font-variant-numeric: tabular-nums
+        }
+
+        .records .k {
+            font-weight: 500
+        }
+
+        .records .n {
+            color: #aaa;
+            font-size: 12px
+        }
+
+        .records .x {
+            margin-left: auto;
+            color: #ccc;
+            cursor: pointer;
+            padding: 0 6px;
+            font-size: 16px;
+            line-height: 1;
+        }
+
+        .records .x:hover {
+            color: #d33
+        }
+
+        .muted {
+            color: #aaa;
+            font-size: 13px;
+            text-align: center;
+            margin-top: 46px;
+        }
+
+        .reset-option {
+            margin-top: 60px;
+            text-align: center;
+            font-size: 11px;
+        }
+
+        .reset-link {
+            color: #999;
+            cursor: pointer;
+            text-decoration: none;
+            transition: color 0.3s;
+        }
+
+        .reset-link:hover {
+            color: #666;
+        }
+
+        .gate {
+            position: fixed;
+            inset: 0;
+            background: #fafafa;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 16px;
+            z-index: 300;
+            padding: 30px;
+        }
+
+        .gate.is-open {
+            display: flex;
+        }
+
+        .gate h2 {
+            font-size: 22px;
+            font-weight: 300;
+            letter-spacing: -0.5px;
+        }
+
+        .gate p {
+            color: #999;
+            font-size: 14px;
+            text-align: center;
+            max-width: 320px;
+            line-height: 1.8;
+        }
+
+        .gate input {
+            border-bottom-width: 1px;
+            border-bottom-color: #ccc;
+            font-size: 17px;
+            width: 220px;
+            padding: 12px 16px;
+        }
+
+        .gate .actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 6px
+        }
+
+        .gate .err {
+            color: #d33;
+            font-size: 13px;
+            min-height: 18px
+        }
+    </style>
+</head>
+
+<body>
+    <a class="lab-back" href="/lab">← Lab</a>
+
+    <div class="container">
+        <h1>Weight</h1>
+
+        <div class="input-section">
+            <input type="number" id="weight" placeholder="输入体重" step="0.1" inputmode="decimal">
+            <button onclick="saveWeight()">提交</button>
+            <div id="message"></div>
+        </div>
+
+        <div class="chart-container" id="chart"></div>
+        <div class="summary" id="summary"></div>
+        <ul class="records" id="records"></ul>
+
+        <div class="reset-option">
+            <a class="reset-link" onclick="resetData()" title="删除所有体重数据并重新开始">重新开始</a>
+        </div>
+    </div>
+
+    <div class="gate" id="gate">
+        <h2>私人数据</h2>
+        <p>体重记录全程需要登录，用的是后台那个管理密码。数据存在服务器本地，不会发给任何第三方。</p>
+        <input type="password" id="gatePass" placeholder="管理密码" autocomplete="current-password">
+        <div class="err" id="gateErr"></div>
+        <div class="actions">
+            <button id="gateOk">进入</button>
+            <button onclick="location.href='/lab'">返回</button>
+        </div>
+    </div>
+
+    <script>
+        var gate = document.getElementById('gate');
+        var msgBox = document.getElementById('message');
+
+        function showMessage(text, type) {
+            msgBox.textContent = text;
+            msgBox.className = type || '';
+            clearTimeout(showMessage.t);
+            showMessage.t = setTimeout(function () { msgBox.textContent = ''; msgBox.className = ''; }, 3000);
+        }
+
+        /* ---------- 登录闸 ---------- */
+
+        function submitGate() {
+            var pass = document.getElementById('gatePass').value;
+            var btn = document.getElementById('gateOk');
+            btn.disabled = true;
+            fetch('/api/auth/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ password: pass })
+            }).then(function (r) {
+                return r.json().then(function (d) { return { ok: r.ok, data: d }; });
+            }).then(function (r) {
+                if (!r.ok) { document.getElementById('gateErr').textContent = r.data.error || '登录失败'; return; }
+                gate.classList.remove('is-open');
+                refresh();
+            }).catch(function () {
+                document.getElementById('gateErr').textContent = '网络出错';
+            }).then(function () { btn.disabled = false; });
+        }
+
+        document.getElementById('gateOk').onclick = submitGate;
+        document.getElementById('gatePass').addEventListener('keydown', function (e) {
+            if (e.key === 'Enter') submitGate();
+        });
+
+        /* ---------- 数据 ---------- */
+
+        function fetchWeights() {
+            return fetch('/api/lab/weights').then(function (r) {
+                if (r.status === 401) { gate.classList.add('is-open'); return null; }
+                return r.json();
+            });
+        }
+
+        function refresh() {
+            return fetchWeights().then(function (d) {
+                if (!d) return;
+                var list = d.weights || [];
+                drawChart(list);
+                drawSummary(list);
+                drawRecords(list);
+            }).catch(function () { showMessage('获取数据失败', 'error'); });
+        }
+
+        function saveWeight() {
+            var el = document.getElementById('weight');
+            var val = el.value.trim();
+            if (!val) { showMessage('请输入体重', 'error'); return; }
+            fetch('/api/lab/weights', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ kg: Number(val) })
+            }).then(function (r) {
+                return r.json().then(function (d) { return { ok: r.ok, data: d }; });
+            }).then(function (r) {
+                if (!r.ok) { showMessage(r.data.error || '保存失败', 'error'); return; }
+                showMessage(r.data.replaced ? '已更新今天的记录' : '保存成功', 'success');
+                el.value = '';
+                refresh();
+            }).catch(function () { showMessage('保存失败', 'error'); });
+        }
+
+        function remove(id) {
+            if (!confirm('删除这条记录？')) return;
+            fetch('/api/lab/weights/' + encodeURIComponent(id), { method: 'DELETE' })
+                .then(function (r) { return r.json(); })
+                .then(function () { refresh(); });
+        }
+
+        function resetData() {
+            if (!confirm('确定要删除所有体重数据吗？此操作无法撤销。')) return;
+            fetch('/api/lab/weights/clear', { method: 'POST' })
+                .then(function (r) { return r.json(); })
+                .then(function () { refresh(); showMessage('数据已清空', 'success'); });
+        }
+
+        /* ---------- 渲染 ---------- */
+
+        function drawSummary(list) {
+            var box = document.getElementById('summary');
+            if (!list.length) { box.innerHTML = ''; return; }
+            var last = list[list.length - 1];
+            var diff = list.length > 1 ? (last.kg - list[list.length - 2].kg) : 0;
+            var sign = diff > 0 ? '+' : '';
+            box.innerHTML =
+                '<span>最新<b>' + last.kg.toFixed(1) + ' kg</b></span>' +
+                '<span>较上次<b>' + (list.length > 1 ? sign + diff.toFixed(1) : '—') + '</b></span>' +
+                '<span>记录<b>' + list.length + ' 天</b></span>';
+        }
+
+        function drawRecords(list) {
+            var ul = document.getElementById('records');
+            ul.innerHTML = '';
+            list.slice().reverse().slice(0, 40).forEach(function (w) {
+                var li = document.createElement('li');
+
+                var d = document.createElement('span');
+                d.className = 'd';
+                d.textContent = w.date;
+
+                var k = document.createElement('span');
+                k.className = 'k';
+                k.textContent = w.kg.toFixed(1) + ' kg';
+
+                li.appendChild(d);
+                li.appendChild(k);
+
+                if (w.note) {
+                    var n = document.createElement('span');
+                    n.className = 'n';
+                    n.textContent = w.note;
+                    li.appendChild(n);
+                }
+
+                var x = document.createElement('span');
+                x.className = 'x';
+                x.textContent = '×';
+                x.title = '删除';
+                x.onclick = function () { remove(w.id); };
+                li.appendChild(x);
+
+                ul.appendChild(li);
+            });
+        }
+
+        // 手写折线图。原来这里挂的是 Chart.js，为了画一条线从 CDN 拉一个
+        // 几百 KB 的库，既拖慢首屏，也意味着断网就看不到自己的数据。
+        function drawChart(list) {
+            var box = document.getElementById('chart');
+            box.innerHTML = '';
+            var points = list.slice(-60);
+            if (points.length < 2) {
+                var tip = document.createElement('div');
+                tip.className = 'muted';
+                tip.textContent = points.length ? '再记一天就能看出趋势。' : '还没有记录。填一个数字开始。';
+                box.appendChild(tip);
+                return;
+            }
+
+            var W = 600, H = 220;
+            var padL = 42, padR = 14, padT = 18, padB = 30;
+            var plotW = W - padL - padR;
+            var plotH = H - padT - padB;
+
+            var kgs = points.map(function (p) { return p.kg; });
+            var min = Math.min.apply(null, kgs);
+            var max = Math.max.apply(null, kgs);
+            if (max - min < 2) { var mid = (max + min) / 2; min = mid - 1; max = mid + 1; }
+            var span = max - min;
+            min -= span * 0.12;
+            max += span * 0.12;
+
+            function X(i) { return padL + (plotW * i) / (points.length - 1); }
+            function Y(kg) { return padT + plotH * (1 - (kg - min) / (max - min)); }
+
+            var ns = 'http://www.w3.org/2000/svg';
+            var svg = document.createElementNS(ns, 'svg');
+            svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H);
+            svg.setAttribute('role', 'img');
+            svg.setAttribute('aria-label', '体重趋势折线图');
+
+            function el(tag, attrs, text) {
+                var node = document.createElementNS(ns, tag);
+                Object.keys(attrs).forEach(function (k) { node.setAttribute(k, attrs[k]); });
+                if (text != null) node.textContent = text;
+                svg.appendChild(node);
+                return node;
+            }
+
+            // 横向网格 + 左侧刻度
+            for (var g = 0; g <= 3; g++) {
+                var gy = padT + (plotH * g) / 3;
+                el('line', { x1: padL, y1: gy, x2: W - padR, y2: gy, stroke: '#eee', 'stroke-width': 1 });
+                el('text', {
+                    x: padL - 8, y: gy + 4, 'text-anchor': 'end',
+                    fill: '#aaa', 'font-size': 11, 'font-family': 'system-ui,sans-serif'
+                }, (max - ((max - min) * g) / 3).toFixed(1));
+            }
+
+            var line = points.map(function (p, i) { return X(i) + ',' + Y(p.kg); }).join(' ');
+            el('polygon', {
+                points: padL + ',' + (padT + plotH) + ' ' + line + ' ' + (W - padR) + ',' + (padT + plotH),
+                fill: 'rgba(0,0,0,0.05)'
+            });
+            el('polyline', { points: line, fill: 'none', stroke: '#333', 'stroke-width': 2, 'stroke-linejoin': 'round' });
+
+            points.forEach(function (p, i) {
+                el('circle', {
+                    cx: X(i), cy: Y(p.kg), r: points.length > 30 ? 2 : 3.5,
+                    fill: '#333', stroke: '#fff', 'stroke-width': 1.5
+                });
+            });
+
+            // 横轴只标几个日期，否则 60 个点会把轴挤成一片黑
+            var ticks = Math.min(5, points.length);
+            for (var t = 0; t < ticks; t++) {
+                var idx = Math.round((points.length - 1) * (t / (ticks - 1)));
+                el('text', {
+                    x: X(idx), y: H - 8, 'text-anchor': t === 0 ? 'start' : t === ticks - 1 ? 'end' : 'middle',
+                    fill: '#aaa', 'font-size': 11, 'font-family': 'system-ui,sans-serif'
+                }, points[idx].date.slice(5));
+            }
+
+            box.appendChild(svg);
+        }
+
+        document.getElementById('weight').addEventListener('keydown', function (e) {
+            if (e.key === 'Enter') saveWeight();
+        });
+
+        // 先问登录状态：没有会话就不去拉数据，直接亮登录闸
+        fetch('/api/auth/status')
+            .then(function (r) { return r.json(); })
+            .then(function (d) {
+                if (d.loggedIn) refresh();
+                else { gate.classList.add('is-open'); document.getElementById('gatePass').focus(); }
+            })
+            .catch(function () { gate.classList.add('is-open'); });
+    </script>
+</body>
+
+</html>

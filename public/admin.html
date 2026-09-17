@@ -13,6 +13,13 @@ body{border-top:1px solid var(--rule-soft)}
 .login-card{background:var(--card);border:1px solid var(--rule);border-radius:8px;padding:28px}
 .login-card h1{margin:0 0 6px;font-size:1.9rem;font-weight:500;line-height:1.1}
 .login-card p{color:var(--ink-70);margin:0 0 22px;font-size:.92rem;line-height:1.7}
+.login-error{color:#993c1d !important;margin:0 0 10px !important;padding:10px 12px;border:1px solid #993c1d66;border-radius:6px;background:#993c1d0f;font-size:.88rem}
+.login-hint{color:var(--ink-70) !important;font-size:.82rem !important;margin:0 0 18px !important;line-height:1.7}
+.login-hint code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.85em;background:#1714110f;padding:.1em .35em;border-radius:4px}
+.login-help{margin-top:20px;border-top:1px solid var(--rule);padding-top:14px}
+.login-help summary{cursor:pointer;letter-spacing:.14em;text-transform:uppercase;font-family:Helvetica Neue,Helvetica,Arial,sans-serif;font-size:.68rem;color:var(--ink-65)}
+.login-help ol{margin:12px 0 0;padding-left:1.3em;color:var(--ink-70);font-size:.82rem;line-height:1.9}
+.login-help code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.85em;background:#1714110f;padding:.1em .35em;border-radius:4px}
 .admin-top{display:flex;justify-content:space-between;align-items:center;gap:14px;padding-bottom:14px;border-bottom:1px solid var(--rule)}
 .admin-top__brand{letter-spacing:.14em;text-transform:uppercase;font-family:Helvetica Neue,Helvetica,Arial,sans-serif;font-size:.74rem;color:var(--ink-65)}
 .admin-top__actions{display:flex;align-items:center;gap:14px;font-family:Helvetica Neue,Helvetica,Arial,sans-serif;font-size:.74rem;letter-spacing:.1em;text-transform:uppercase}
@@ -101,7 +108,18 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--rule-str
         <label for="login-pass">密码</label>
         <input type="password" id="login-pass" autocomplete="current-password" placeholder="管理密码">
       </div>
+      <p class="login-error" id="login-error" hidden></p>
+      <p class="login-hint" id="login-hint" hidden></p>
       <button class="btn btn--primary" id="login-btn" type="button">登录</button>
+      <details class="login-help">
+        <summary>登不上？</summary>
+        <ol>
+          <li>确认服务真的在跑：<code>curl http://127.0.0.1:3000/api/health</code></li>
+          <li>看密码在哪：<code>cat data/.admin-password</code></li>
+          <li>不知道密码就重设：<code>node tools/set-password.js 你的新密码</code></li>
+          <li>还不行就跑一次体检：<code>node tools/doctor.js</code></li>
+        </ol>
+      </details>
     </div>
   </div>
 
@@ -310,9 +328,17 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--rule-str
     opts.headers = Object.assign({ 'Content-Type': 'application/json' }, opts.headers || {});
     return fetch('/api' + path, opts).then(function (res) {
       return res.json().catch(function () { return {}; }).then(function (data) {
-        if (!res.ok) throw new Error(data.error || ('请求失败 ' + res.status));
+        if (!res.ok) {
+          var err = new Error(data.error || ('请求失败 ' + res.status));
+          err.status = res.status;
+          throw err;
+        }
         return data;
       });
+    }, function () {
+      var err = new Error('连不上服务，请求没发出去');
+      err.status = 0;
+      throw err;
     });
   }
 
@@ -330,14 +356,42 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--rule-str
     loadAll();
   }
 
+  // toast 两秒就没了，登录失败必须留在页面上，否则看起来就像"点了没反应"
+  var LOGIN_HINTS = {
+    401: '密码不对。密码在服务器上的 data/.admin-password 里（cat 一下就能看），或者用 node tools/set-password.js 重设。',
+    429: '连错太多次被临时锁了。等 10 分钟，或者在服务器上重启一次进程，锁定立刻解除。',
+    500: '服务器内部报错。多半是 data/ 目录不可写 —— 在服务器上跑 node tools/doctor.js 会直接告诉你原因。',
+    0: '浏览器没能连上服务。确认进程在跑、端口和地址都对；如果走了 Nginx，检查转发配置。'
+  };
+
+  function loginFailed(err) {
+    var box = $('#login-error');
+    var hint = $('#login-hint');
+    box.textContent = err.message;
+    box.hidden = false;
+    var advice = LOGIN_HINTS[err.status] || ('请求失败（HTTP ' + err.status + '）。在服务器上跑 node tools/doctor.js 看详细原因。');
+    hint.textContent = advice;
+    hint.hidden = false;
+  }
+
   function doLogin() {
     var pass = $('#login-pass').value;
     var btn = $('#login-btn');
+    if (!pass) {
+      $('#login-error').textContent = '还没填密码。';
+      $('#login-error').hidden = false;
+      $('#login-hint').hidden = true;
+      $('#login-pass').focus();
+      return;
+    }
     btn.disabled = true;
+    btn.textContent = '登录中…';
+    $('#login-error').hidden = true;
+    $('#login-hint').hidden = true;
     api('/auth/login', { method: 'POST', body: { password: pass } })
       .then(function () { $('#login-pass').value = ''; showApp(); })
-      .catch(function (e) { toast(e.message, true); })
-      .then(function () { btn.disabled = false; });
+      .catch(loginFailed)
+      .then(function () { btn.disabled = false; btn.textContent = '登录'; });
   }
 
   $('#login-btn').addEventListener('click', doLogin);
