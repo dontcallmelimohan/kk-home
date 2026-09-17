@@ -1,5 +1,17 @@
 # kk-home（wenwen blog）项目约定
 
+## 部署与仓库（重要）
+- **仓库是公开的**：`https://github.com/dontcallmelimohan/kk-home`。**`data/` 绝对不能提交** —— 里面有后台密码、会话密钥、文章、留言、体重记录。曾经被提交并推送过，密码因此泄漏，必须换（`node tools/set-password.js --random`）。从索引摘掉**不清除历史**，旧提交仍然可读。
+- 部署在服务器上：`git pull` + `pm2 restart <进程名>`。**用进程名不要用 id**（`pm2 restart 0` 那种，重装/重启后 id 会变）。
+- 站点零依赖（`package.json` 无 dependencies），部署**不需要** `npm install`。
+- `pm2 logs` 一定要带 `--nostream`，否则流式 tail 会把脚本挂住。
+- 部署脚本必须失败即停（`set -euo pipefail`）。`git pull` 被拒时如果继续往下走，就会用旧代码重启、看起来像部署成功 —— 这是最难发现的一类故障。
+
+## 静态资源缓存
+- `public/lab/**`：`public, max-age=300`，**无 ETag / Last-Modified** → 浏览器 5 分钟内不回校验，部署后可能仍显示旧页面，需要硬刷新。
+- SSR 页面（`/`、`/lab`、`/articles` 等）：`no-cache, must-revalidate` → 刷新即最新。
+- 静态文件每次请求都从磁盘读 → 改 html/css **不用重启**；改 `lib/*.js` **必须重启**（require 缓存）。
+
 ## 定位
 用户自己的中文写作博客。原为一个单页静态 `kkhome.html`，2026-09-17 改造为「SSR + 文件存储 + 浏览器可编辑」的自托管站点。原 `kkhome.html` 保留在仓库根目录作为设计参考，不再被服务读取。
 
